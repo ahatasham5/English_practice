@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>As-Sunnah English - Speech Practice Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for highlighting words */
+        .correct-word {
+            color: #10B981; /* Tailwind green-500 */
+            font-weight: 600;
+            background-color: #ECFDF5; /* green-50 */
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        .incorrect-word {
+            color: #EF4444; /* Tailwind red-500 */
+            font-weight: 600;
+            text-decoration: line-through;
+            background-color: #FEF2F2; /* red-50 */
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        .missed-word {
+            color: #F97316; /* Tailwind orange-500 */
+            font-weight: 600;
+            background-color: #FFF7ED; /* orange-50 */
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen py-8">
+    <div class="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-6 md:p-10 transition-all">
+        <header class="text-center mb-6">
+    		<img src="logo.png" alt="As-Sunnah Foundation Logo" class="mx-auto mb-3 w-24 h-24 object-contain rounded-full shadow" />
+    		<h1 class="text-3xl md:text-4xl font-bold text-gray-800">As-Sunnah English</h1>
+    		<p class="text-gray-500 mt-2">Practice with our challenging sentences or enter your own.</p>
+	</header>
+
+
+        <!-- Custom Phrase Input -->
+        <div class="mb-6">
+            <label for="custom-phrase-input" class="block text-sm font-medium text-gray-700 mb-1">Custom Practice Phrase</label>
+            <form id="custom-phrase-form" class="flex flex-col sm:flex-row gap-2">
+                <input type="text" id="custom-phrase-input" placeholder="Enter a sentence to practice here..." class="flex-grow w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button type="submit" class="w-full sm:w-auto flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">
+                    Practice This
+                </button>
+            </form>
+        </div>
+        
+        <div class="text-center my-4">
+             <div class="relative">
+                <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div class="w-full border-t border-gray-300"></div>
+                </div>
+                <div class="relative flex justify-center">
+                    <span class="bg-white px-2 text-sm text-gray-500">Practice Area</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sentence to be read -->
+        <div class="bg-gray-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
+            <p class="text-xl md:text-2xl text-gray-700 font-medium" id="sentence-display">Click 'New Sentence' to begin.</p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <button id="listen-btn" class="flex items-center justify-center w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 disabled:bg-blue-300 disabled:cursor-not-allowed">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 5.858a3 3 0 00-4.243 4.243l.001.001M11 5.054a1 1 0 011.834-.54l.05.027a1 1 0 01.54 1.834l-.027.05a1 1 0 01-1.834.54l-.05-.027a1 1 0 01-.54-1.834zM7 9a1 1 0 110-2 1 1 0 010 2zM5 13a1 1 0 110-2 1 1 0 010 2z" /></svg>
+                Listen
+            </button>
+            <button id="speak-btn" class="flex items-center justify-center w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 disabled:bg-green-300 disabled:cursor-not-allowed">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                Speak Now
+            </button>
+            <button id="next-btn" class="flex items-center justify-center w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                New Sentence
+            </button>
+        </div>
+        
+        <!-- Results Area -->
+        <div id="results-area" class="space-y-4 hidden">
+             <div>
+                <h3 class="font-semibold text-gray-600">What I heard:</h3>
+                <p id="user-speech-display" class="text-lg text-gray-800 p-3 bg-gray-50 rounded-lg min-h-[50px]"></p>
+            </div>
+            <div>
+                <h3 class="font-semibold text-gray-600">Your Score:</h3>
+                <div class="w-full bg-gray-200 rounded-full h-4">
+                    <div id="score-bar" class="bg-green-500 h-4 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <p id="score-text" class="text-right font-bold text-lg mt-1"></p>
+            </div>
+            <div>
+                <h3 class="font-semibold text-gray-600">Comparison:</h3>
+                <p id="comparison-display" class="text-lg p-3 bg-gray-50 rounded-lg min-h-[50px] leading-relaxed"></p>
+            </div>
+        </div>
+
+        <!-- Browser Support Message -->
+        <div id="unsupported-message" class="hidden text-center text-red-600 bg-red-100 p-4 rounded-lg">
+            <p>Sorry, your browser does not support the Web Speech API. Please try Google Chrome or Microsoft Edge.</p>
+        </div>
+    </div>
+
+    <script>
+        // DOM Element References
+        const sentenceDisplay = document.getElementById('sentence-display');
+        const userSpeechDisplay = document.getElementById('user-speech-display');
+        const scoreText = document.getElementById('score-text');
+        const scoreBar = document.getElementById('score-bar');
+        const comparisonDisplay = document.getElementById('comparison-display');
+        const listenBtn = document.getElementById('listen-btn');
+        const speakBtn = document.getElementById('speak-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const resultsArea = document.getElementById('results-area');
+        const unsupportedMessage = document.getElementById('unsupported-message');
+        const customPhraseForm = document.getElementById('custom-phrase-form');
+        const customPhraseInput = document.getElementById('custom-phrase-input');
+
+        // Check for Web Speech API support
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const synthesis = window.speechSynthesis;
+
+        if (!SpeechRecognition || !synthesis) {
+            unsupportedMessage.classList.remove('hidden');
+            listenBtn.disabled = true;
+            speakBtn.disabled = true;
+            nextBtn.disabled = true;
+            customPhraseForm.querySelector('button').disabled = true;
+        }
+
+        // A list of more challenging sentences for practice
+        const sentences = [
+            "The juxtaposition of rural tranquility and urban dynamism creates a fascinating cultural tapestry.",
+            "Her meticulous attention to detail was instrumental in the project's unprecedented success.",
+            "Notwithstanding the inclement weather, the ceremonial procession continued as planned.",
+            "Bureaucracy, in its essence, can sometimes inadvertently stifle innovation and creativity.",
+            "Archaeologists meticulously unearthed artifacts that provided profound insights into ancient civilizations.",
+            "The delegate's eloquent speech on fiscal responsibility resonated with the assembly.",
+            "It is imperative to distinguish between correlation and causation in statistical analysis.",
+            "The plethora of information available online can be overwhelming without a proper filtration strategy.",
+            "Throughout the tumultuous negotiations, she remained a paragon of composure and diplomacy.",
+            "Phenomenal phytoplankton populations proliferate in phosphorescent photic zones."
+        ];
+
+        let currentSentence = '';
+        let recognition;
+        
+        // Function to set up a new phrase for practice
+        function setupNewPhrase(phrase) {
+            currentSentence = phrase;
+            sentenceDisplay.textContent = currentSentence;
+            resultsArea.classList.add('hidden'); // Hide results for the new phrase
+            speakBtn.disabled = false;
+            listenBtn.disabled = false;
+            speakBtn.textContent = 'Speak Now';
+            speakBtn.insertAdjacentHTML('afterbegin', '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>');
+        }
+
+        // Function to get a random sentence from the built-in list
+        function getNewBuiltInSentence() {
+            customPhraseInput.value = ''; // Clear custom input
+            const randomIndex = Math.floor(Math.random() * sentences.length);
+            setupNewPhrase(sentences[randomIndex]);
+        }
+
+        // Event listener for custom phrase form
+        customPhraseForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const customPhrase = customPhraseInput.value.trim();
+            if (customPhrase) {
+                setupNewPhrase(customPhrase);
+            }
+        });
+
+        // Function to speak the text using TTS
+        function speakText() {
+            if (synthesis.speaking) {
+                synthesis.cancel();
+            }
+            if (currentSentence) {
+                const utterance = new SpeechSynthesisUtterance(currentSentence);
+                utterance.onstart = () => { listenBtn.disabled = true; };
+                utterance.onend = () => { listenBtn.disabled = false; };
+                utterance.onerror = (event) => {
+                    console.error('SpeechSynthesisUtterance.onerror', event);
+                    listenBtn.disabled = false;
+                };
+                synthesis.speak(utterance);
+            }
+        }
+
+        // Function to handle speech recognition
+        function startRecognition() {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                speakBtn.disabled = true;
+                speakBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Listening...';
+            };
+
+            recognition.onresult = (event) => {
+                const spokenText = event.results[0][0].transcript;
+                userSpeechDisplay.textContent = spokenText;
+                compareAndScore(currentSentence, spokenText);
+            };
+            
+            recognition.onspeechend = () => { recognition.stop(); };
+
+            recognition.onend = () => {
+                speakBtn.disabled = false;
+                speakBtn.textContent = 'Speak Now';
+                speakBtn.insertAdjacentHTML('afterbegin', '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>');
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error', event.error);
+                userSpeechDisplay.textContent = `Error: ${event.error}. Please try again.`;
+            };
+
+            recognition.start();
+        }
+
+        // Function to compare text and calculate the score
+        function compareAndScore(original, spoken) {
+            resultsArea.classList.remove('hidden');
+
+            const normalize = (text) => text.toLowerCase().replace(/[.,?!]/g, '');
+            
+            const originalWords = normalize(original).split(/\s+/).filter(Boolean);
+            const spokenWords = normalize(spoken).split(/\s+/).filter(Boolean);
+            
+            let correctCount = 0;
+            let comparisonHTML = '';
+
+            for (let i = 0; i < originalWords.length; i++) {
+                if (originalWords[i] === spokenWords[i]) {
+                    correctCount++;
+                    comparisonHTML += `<span class="correct-word">${originalWords[i]}</span> `;
+                } else if (spokenWords[i]) {
+                    comparisonHTML += `<span class="incorrect-word">${originalWords[i]}</span> `;
+                } else {
+                    comparisonHTML += `<span class="missed-word">${originalWords[i]}</span> `;
+                }
+            }
+
+            comparisonDisplay.innerHTML = comparisonHTML.trim();
+
+            const accuracy = originalWords.length > 0 ? (correctCount / originalWords.length) * 100 : 0;
+            const score = Math.round(accuracy);
+            
+            scoreText.textContent = `${score}% Accuracy`;
+            scoreBar.style.width = `${score}%`;
+
+            if (score < 50) scoreBar.style.backgroundColor = '#EF4444'; // red-500
+            else if (score < 80) scoreBar.style.backgroundColor = '#F59E0B'; // amber-500
+            else scoreBar.style.backgroundColor = '#10B981'; // green-500
+        }
+        
+        // Event Listeners for buttons
+        listenBtn.addEventListener('click', speakText);
+        speakBtn.addEventListener('click', startRecognition);
+        nextBtn.addEventListener('click', getNewBuiltInSentence);
+
+        // Load the first sentence when the page loads
+        window.addEventListener('load', getNewBuiltInSentence);
+
+    </script>
+</body>
+</html>
