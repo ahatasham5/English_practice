@@ -178,7 +178,6 @@
 
                 const loadGameSentences = async () => {
                     try {
-                        // Add cache-busting query parameter to prevent browser caching
                         const response = await fetch('./game_sentences.txt?t=' + new Date().getTime());
                         if (!response.ok) {
                             throw new Error('File not found or server error');
@@ -186,21 +185,18 @@
                         const text = await response.text();
                         const loadedSentences = text.split('\n').map(s => s.trim()).filter(Boolean);
                         
-                        // Use loaded sentences if the file is not empty, otherwise use default.
                         const finalSentences = loadedSentences.length > 0 ? loadedSentences : DEFAULT_GAME_SENTENCES;
 
                         const levels = finalSentences.map((sentence, index) => ({
-                            // Use predefined names, or fallback to a generic name if there are more sentences than names.
                             name: LEVEL_NAMES[index] || `Level ${index + 1}`, 
                             sentence: sentence
                         }));
 
                         setGameLevels(levels);
                     } catch (error) {
-                        // This catch block handles fetch errors (e.g., 404)
                         console.warn('Could not load game_sentences.txt, using default sentences.', error);
                         const levels = DEFAULT_GAME_SENTENCES.map((sentence, index) => ({
-                            name: LEVEL_NAMES[index], // Default sentences match default names
+                            name: LEVEL_NAMES[index],
                             sentence: sentence
                         }));
                         setGameLevels(levels);
@@ -227,49 +223,84 @@
                     setCurrentSentence(gameLevels[level].sentence);
                 }
             }, [gameLevels]);
+            
+            const updateGameScore = (finalScore) => {
+                if(view !== 'game') return;
+
+                setLevelScores(prev => {
+                    const newScores = [...prev];
+                    const levelEntry = { level: currentLevel, score: finalScore, passed: finalScore >= 90 };
+                    const existingIndex = newScores.findIndex(s => s.level === currentLevel);
+                    if (existingIndex > -1) {
+                        if(newScores[existingIndex].score < finalScore) {
+                            newScores[existingIndex] = levelEntry;
+                        }
+                    } else {
+                        newScores.push(levelEntry);
+                    }
+                    return newScores;
+                });
+            }
 
             const compareAndScore = (original, spoken) => {
                 const normalize = (text) => text.toLowerCase().replace(/[.,?!]/g, '').trim();
                 const originalWords = normalize(original).split(/\s+/).filter(Boolean);
                 const spokenWords = normalize(spoken).split(/\s+/).filter(Boolean);
+                const m = originalWords.length;
+                const n = spokenWords.length;
 
-                let correctCount = 0;
-                let html = '';
-
-                originalWords.forEach((word, index) => {
-                    const spokenWord = spokenWords[index];
-                    if (spokenWord) {
-                        if (word === spokenWord) {
-                            correctCount++;
-                            html += `<span class="correct-word">${word}</span> `;
-                        } else {
-                            html += `<span class="incorrect-word">${word}</span> `;
-                        }
-                    } else {
-                        html += `<span class="missed-word">${word}</span> `;
-                    }
-                });
-
-                setComparisonHtml(html.trim());
-                const accuracy = originalWords.length > 0 ? (correctCount / originalWords.length) * 100 : 0;
-                const finalScore = Math.round(accuracy);
-                setScore(finalScore);
-
-                if(view === 'game') {
-                    setLevelScores(prev => {
-                        const newScores = [...prev];
-                        const levelEntry = { level: currentLevel, score: finalScore, passed: finalScore >= 90 };
-                        const existingIndex = newScores.findIndex(s => s.level === currentLevel);
-                        if (existingIndex > -1) {
-                            if(newScores[existingIndex].score < finalScore) {
-                                newScores[existingIndex] = levelEntry;
-                            }
-                        } else {
-                            newScores.push(levelEntry);
-                        }
-                        return newScores;
-                    });
+                if (m === 0) {
+                    const finalScore = n === 0 ? 100 : 0;
+                    setScore(finalScore);
+                    setComparisonHtml('');
+                    updateGameScore(finalScore);
+                    return;
                 }
+
+                // Levenshtein distance DP table
+                const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+                for (let i = 0; i <= m; i++) dp[i][0] = i;
+                for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+                for (let i = 1; i <= m; i++) {
+                    for (let j = 1; j <= n; j++) {
+                        const cost = originalWords[i - 1] === spokenWords[j - 1] ? 0 : 1;
+                        dp[i][j] = Math.min(
+                            dp[i - 1][j - 1] + cost, // Substitution/Match
+                            dp[i - 1][j] + 1,       // Deletion
+                            dp[i][j - 1] + 1        // Insertion
+                        );
+                    }
+                }
+
+                // Backtrack to build HTML and count correct words
+                const htmlParts = [];
+                let correctCount = 0;
+                let i = m, j = n;
+                while (i > 0 || j > 0) {
+                    const cost = (i > 0 && j > 0 && originalWords[i-1] === spokenWords[j-1]) ? 0 : 1;
+                    
+                    if (i > 0 && j > 0 && dp[i][j] === dp[i-1][j-1] + cost) {
+                        if (cost === 0) {
+                            htmlParts.unshift(`<span class="correct-word">${originalWords[i-1]}</span>`);
+                            correctCount++;
+                        } else {
+                            htmlParts.unshift(`<span class="incorrect-word">${originalWords[i-1]}</span>`);
+                        }
+                        i--; j--;
+                    } else if (i > 0 && dp[i][j] === dp[i-1][j] + 1) {
+                        htmlParts.unshift(`<span class="missed-word">${originalWords[i-1]}</span>`);
+                        i--;
+                    } else {
+                        // This corresponds to an insertion in the spoken text, which we ignore for the comparison display.
+                        j--;
+                    }
+                }
+                
+                const finalScore = m > 0 ? Math.round((correctCount / m) * 100) : 0;
+                setScore(finalScore);
+                setComparisonHtml(htmlParts.join(' '));
+                updateGameScore(finalScore);
             };
             
             // --- EVENT HANDLERS ---
@@ -294,26 +325,45 @@
                 
                 if (isListening) {
                     recognitionRef.current?.stop();
-                    setIsListening(false);
                     return;
                 }
                 setShowResults(false);
+                setUserSpeech('');
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 const recognition = new SpeechRecognition();
                 recognitionRef.current = recognition;
+
                 recognition.lang = 'en-US';
                 recognition.interimResults = false;
                 recognition.maxAlternatives = 1;
+                recognition.continuous = false; // Stop after first final result
+
                 recognition.onstart = () => setIsListening(true);
-                recognition.onspeechend = () => recognition.stop();
-                recognition.onend = () => setIsListening(false);
-                recognition.onerror = (e) => console.error('Speech recognition error', e.error);
+                
+                recognition.onend = () => {
+                    recognitionRef.current = null;
+                    setIsListening(false);
+                };
+
+                recognition.onerror = (e) => {
+                    console.error('Speech recognition error', e.error);
+                     if (e.error === 'no-speech' || e.error === 'audio-capture') {
+                        setUserSpeech('');
+                        compareAndScore(currentSentence, ''); // Score as 0
+                        setShowResults(true);
+                    }
+                };
+                
                 recognition.onresult = (event) => {
-                    const spokenText = event.results[0][0].transcript;
+                    let spokenText = '';
+                    if (event.results.length > 0 && event.results[0].length > 0) {
+                        spokenText = event.results[0][0].transcript;
+                    }
                     setUserSpeech(spokenText);
                     compareAndScore(currentSentence, spokenText);
                     setShowResults(true);
                 };
+
                 recognition.start();
             };
 
