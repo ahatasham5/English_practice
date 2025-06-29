@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>As-Sunnah English - Speech Practice & Game</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- React & Babel for in-browser JSX transpilation -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for highlighting words */
+        .correct-word {
+            color: #10B981; /* Tailwind green-500 */
+            font-weight: 600;
+            background-color: #ECFDF5;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        .incorrect-word {
+            color: #EF4444; /* Tailwind red-500 */
+            font-weight: 600;
+            text-decoration: line-through;
+            background-color: #FEF2F2;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        .missed-word {
+            color: #F97316; /* Tailwind orange-500 */
+            font-weight: 600;
+            background-color: #FFF7ED;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen py-8">
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        const PRACTICE_SENTENCES = [
+            "The juxtaposition of rural tranquility and urban dynamism creates a fascinating cultural tapestry.",
+            "Her meticulous attention to detail was instrumental in the project's unprecedented success.",
+            "Notwithstanding the inclement weather, the ceremonial procession continued as planned.",
+            "Bureaucracy, in its essence, can sometimes inadvertently stifle innovation and creativity.",
+            "Archaeologists meticulously unearthed artifacts that provided profound insights into ancient civilizations.",
+            "The delegate's eloquent speech on fiscal responsibility resonated with the assembly.",
+            "It is imperative to distinguish between correlation and causation in statistical analysis.",
+            "The plethora of information available online can be overwhelming without a proper filtration strategy.",
+            "Throughout the tumultuous negotiations, she remained a paragon of composure and diplomacy.",
+            "Phenomenal phytoplankton populations proliferate in phosphorescent photic zones."
+        ];
+        
+        const LEVEL_NAMES = ["Beginner", "Easy", "Intermediate", "Advanced", "Expert", "Master", "Virtuoso", "Grandmaster"];
+
+        const DEFAULT_GAME_SENTENCES = [
+            "The sun shines brightly in the clear blue sky.",
+            "We are planning a fun trip to the mountains this weekend.",
+            "Technology has dramatically changed the way we communicate and work.",
+            "It is imperative to distinguish between correlation and causation in analysis.",
+            "Archaeologists meticulously unearthed artifacts that provided profound insights.",
+            "Notwithstanding the inclement weather, the ceremonial procession continued as planned.",
+            "The juxtaposition of rural tranquility and urban dynamism creates a fascinating cultural tapestry.",
+            "Phenomenal phytoplankton populations proliferate in phosphorescent photic zones."
+        ];
+
+        // --- ICONS ---
+        const SpeechIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20 text-indigo-600" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8z" /><path d="M12 5c-1.654 0-3 1.346-3 3v4c0 1.654 1.346 3 3 3s3-1.346 3-3V8c0-1.654-1.346-3-3-3zm-1 3v4h2V8h-2zM8 9H7v2h1V9zm8 0h-1v2h1V9z" /><path d="M12 16.5c-1.93 0-3.5-1.57-3.5-3.5H7c0 2.414 1.72 4.434 4 4.899V20h2v-2.601c2.28-.465 4-2.485 4-4.899h-1.5c0 1.93-1.57 3.5-3.5 3.5z" />
+            </svg>
+        );
+        const ListenIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 5.858a3 3 0 00-4.243 4.243l.001.001M11 5.054a1 1 0 011.834-.54l.05.027a1 1 0 01.54 1.834l-.027.05a1 1 0 01-1.834.54l-.05-.027a1 1 0 01-.54-1.834zM7 9a1 1 0 110-2 1 1 0 010 2zM5 13a1 1 0 110-2 1 1 0 010 2z" /></svg> );
+        const SpeakIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg> );
+        const NextIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg> );
+        const LoadingIcon = () => ( <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> );
+
+        // --- UI COMPONENTS ---
+        const ScoreBar = ({ score }) => {
+            const barColor = score < 50 ? 'bg-red-500' : score < 80 ? 'bg-amber-500' : 'bg-green-500';
+            return (
+                <div className="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700">
+                    <div className={`${barColor} h-4 rounded-full transition-all duration-500 ease-out`} style={{ width: `${score}%` }}></div>
+                </div>
+            );
+        };
+
+        const ResultsDisplay = ({ userSpeech, score, comparisonHtml }) => (
+            <div className="space-y-4 animate-fade-in">
+                <div>
+                    <h3 className="font-semibold text-gray-600">What I heard:</h3>
+                    <p className="text-lg text-gray-800 p-3 bg-gray-50 rounded-lg min-h-[50px]">{userSpeech || <span className="text-gray-400">Didn't catch that. Please try again.</span>}</p>
+                </div>
+                <div>
+                    <h3 className="font-semibold text-gray-600">Your Score:</h3>
+                    <ScoreBar score={score} />
+                    <p className="text-right font-bold text-lg mt-1">{score}% Accuracy</p>
+                </div>
+                <div>
+                    <h3 className="font-semibold text-gray-600">Comparison:</h3>
+                    <p className="text-lg p-3 bg-gray-50 rounded-lg min-h-[50px] leading-relaxed" dangerouslySetInnerHTML={{ __html: comparisonHtml }}></p>
+                </div>
+            </div>
+        );
+        
+        const AppHeader = ({ studentName, studentRoll, onQuit }) => (
+             <header className="text-center mb-6 relative">
+                <div className="flex justify-center mb-3">
+                   <SpeechIcon />
+                </div>
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-800">As-Sunnah English</h1>
+                {studentName && (
+                    <div className="mt-2 text-gray-600">
+                        <p>Student: <span className="font-semibold">{studentName}</span> | Roll: <span className="font-semibold">{studentRoll || 'N/A'}</span></p>
+                        <button onClick={onQuit} className="mt-2 text-sm text-indigo-600 hover:text-indigo-800 font-semibold">Quit & Change Mode</button>
+                    </div>
+                )}
+            </header>
+        );
+
+        // --- MAIN APP ---
+        const App = () => {
+            // --- STATE MANAGEMENT ---
+            const [view, setView] = useState('login'); // login, practice, game, game_results
+            const [isApiSupported, setIsApiSupported] = useState(true);
+            
+            // Student Info
+            const [studentName, setStudentName] = useState('');
+            const [studentRoll, setStudentRoll] = useState('');
+
+            // Generic Practice State
+            const [currentSentence, setCurrentSentence] = useState('');
+            const [customPhrase, setCustomPhrase] = useState('');
+            const [userSpeech, setUserSpeech] = useState('');
+            const [isListening, setIsListening] = useState(false);
+            const [isSynthesizing, setIsSynthesizing] = useState(false);
+            const [score, setScore] = useState(0);
+            const [comparisonHtml, setComparisonHtml] = useState('');
+            const [showResults, setShowResults] = useState(false);
+
+            // Game State
+            const [gameLevels, setGameLevels] = useState([]);
+            const [gameLoading, setGameLoading] = useState(true);
+            const [currentLevel, setCurrentLevel] = useState(0);
+            const [levelScores, setLevelScores] = useState([]); // [{ level: 0, score: 85, passed: false }]
+            
+            const recognitionRef = useRef(null);
+            
+            // --- LIFECYCLE & CORE LOGIC ---
+            useEffect(() => {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition || !window.speechSynthesis) {
+                    setIsApiSupported(false);
+                }
+
+                const loadGameSentences = async () => {
+                    try {
+                        // Add cache-busting query parameter to prevent browser caching
+                        const response = await fetch('./game_sentences.txt?t=' + new Date().getTime());
+                        if (!response.ok) {
+                            throw new Error('File not found or server error');
+                        }
+                        const text = await response.text();
+                        const loadedSentences = text.split('\n').map(s => s.trim()).filter(Boolean);
+                        
+                        // Use loaded sentences if the file is not empty, otherwise use default.
+                        const finalSentences = loadedSentences.length > 0 ? loadedSentences : DEFAULT_GAME_SENTENCES;
+
+                        const levels = finalSentences.map((sentence, index) => ({
+                            // Use predefined names, or fallback to a generic name if there are more sentences than names.
+                            name: LEVEL_NAMES[index] || `Level ${index + 1}`, 
+                            sentence: sentence
+                        }));
+
+                        setGameLevels(levels);
+                    } catch (error) {
+                        // This catch block handles fetch errors (e.g., 404)
+                        console.warn('Could not load game_sentences.txt, using default sentences.', error);
+                        const levels = DEFAULT_GAME_SENTENCES.map((sentence, index) => ({
+                            name: LEVEL_NAMES[index], // Default sentences match default names
+                            sentence: sentence
+                        }));
+                        setGameLevels(levels);
+                    } finally {
+                        setGameLoading(false);
+                    }
+                };
+
+                loadGameSentences();
+            }, []);
+
+            const getNewPracticeSentence = useCallback(() => {
+                setShowResults(false);
+                setCustomPhrase('');
+                setUserSpeech('');
+                const randomIndex = Math.floor(Math.random() * PRACTICE_SENTENCES.length);
+                setCurrentSentence(PRACTICE_SENTENCES[randomIndex]);
+            }, []);
+            
+            const getNewGameSentence = useCallback((level) => {
+                setShowResults(false);
+                setUserSpeech('');
+                if (gameLevels.length > level) {
+                    setCurrentSentence(gameLevels[level].sentence);
+                }
+            }, [gameLevels]);
+
+            const compareAndScore = (original, spoken) => {
+                const normalize = (text) => text.toLowerCase().replace(/[.,?!]/g, '').trim();
+                const originalWords = normalize(original).split(/\s+/).filter(Boolean);
+                const spokenWords = normalize(spoken).split(/\s+/).filter(Boolean);
+
+                let correctCount = 0;
+                let html = '';
+
+                originalWords.forEach((word, index) => {
+                    const spokenWord = spokenWords[index];
+                    if (spokenWord) {
+                        if (word === spokenWord) {
+                            correctCount++;
+                            html += `<span class="correct-word">${word}</span> `;
+                        } else {
+                            html += `<span class="incorrect-word">${word}</span> `;
+                        }
+                    } else {
+                        html += `<span class="missed-word">${word}</span> `;
+                    }
+                });
+
+                setComparisonHtml(html.trim());
+                const accuracy = originalWords.length > 0 ? (correctCount / originalWords.length) * 100 : 0;
+                const finalScore = Math.round(accuracy);
+                setScore(finalScore);
+
+                if(view === 'game') {
+                    setLevelScores(prev => {
+                        const newScores = [...prev];
+                        const levelEntry = { level: currentLevel, score: finalScore, passed: finalScore >= 90 };
+                        const existingIndex = newScores.findIndex(s => s.level === currentLevel);
+                        if (existingIndex > -1) {
+                            if(newScores[existingIndex].score < finalScore) {
+                                newScores[existingIndex] = levelEntry;
+                            }
+                        } else {
+                            newScores.push(levelEntry);
+                        }
+                        return newScores;
+                    });
+                }
+            };
+            
+            // --- EVENT HANDLERS ---
+            const handleListen = () => {
+                const synthesis = window.speechSynthesis;
+                if (synthesis.speaking) synthesis.cancel();
+                if (currentSentence) {
+                    const utterance = new SpeechSynthesisUtterance(currentSentence);
+                    utterance.onstart = () => setIsSynthesizing(true);
+                    utterance.onend = () => setIsSynthesizing(false);
+                    utterance.onerror = (e) => {
+                        console.error('SpeechSynthesisUtterance.onerror', e);
+                        setIsSynthesizing(false);
+                    };
+                    synthesis.speak(utterance);
+                }
+            };
+
+            const handleSpeak = () => {
+                window.speechSynthesis.cancel();
+                setIsSynthesizing(false);
+                
+                if (isListening) {
+                    recognitionRef.current?.stop();
+                    setIsListening(false);
+                    return;
+                }
+                setShowResults(false);
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                const recognition = new SpeechRecognition();
+                recognitionRef.current = recognition;
+                recognition.lang = 'en-US';
+                recognition.interimResults = false;
+                recognition.maxAlternatives = 1;
+                recognition.onstart = () => setIsListening(true);
+                recognition.onspeechend = () => recognition.stop();
+                recognition.onend = () => setIsListening(false);
+                recognition.onerror = (e) => console.error('Speech recognition error', e.error);
+                recognition.onresult = (event) => {
+                    const spokenText = event.results[0][0].transcript;
+                    setUserSpeech(spokenText);
+                    compareAndScore(currentSentence, spokenText);
+                    setShowResults(true);
+                };
+                recognition.start();
+            };
+
+            const handleCustomPhraseSubmit = (e) => {
+                e.preventDefault();
+                if (customPhrase.trim()) {
+                    setCurrentSentence(customPhrase.trim());
+                    setShowResults(false);
+                    setUserSpeech('');
+                }
+            };
+
+            const handleLogin = (mode) => {
+                if (!studentName.trim()) {
+                    alert("Please enter your name.");
+                    return;
+                }
+                if (mode === 'practice') {
+                    getNewPracticeSentence();
+                    setView('practice');
+                } else if (mode === 'game') {
+                    setCurrentLevel(0);
+                    setLevelScores([]);
+                    getNewGameSentence(0);
+                    setView('game');
+                }
+            };
+            
+            const handleQuit = () => {
+                setView('login');
+                setStudentName('');
+                setStudentRoll('');
+                setShowResults(false);
+            };
+
+            const handleNextLevel = () => {
+                const nextLevel = currentLevel + 1;
+                if (nextLevel < gameLevels.length) {
+                    setCurrentLevel(nextLevel);
+                    getNewGameSentence(nextLevel);
+                } else {
+                    setView('game_results'); // Game finished!
+                }
+            }
+
+            // --- RENDER LOGIC ---
+            if (!isApiSupported) {
+                return <div className="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-6 md:p-10 text-center text-red-600 bg-red-100 rounded-lg">
+                    <h2 className="text-xl font-bold mb-2">Browser Not Supported</h2>
+                    <p>Sorry, your browser does not support the Web Speech API. Please use Google Chrome or Microsoft Edge.</p>
+                </div>
+            }
+
+            if (view === 'login') {
+                return (
+                    <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
+                        <header className="text-center mb-8">
+                            <div className="flex justify-center mb-3"><SpeechIcon /></div>
+                            <h1 className="text-3xl font-bold text-gray-800">Welcome to As-Sunnah English</h1>
+                            <p className="text-gray-500 mt-2">Enter your details to begin.</p>
+                        </header>
+                        <div className="space-y-4">
+                             <div>
+                                <label htmlFor="student-name" className="block text-sm font-medium text-gray-700">Student Name</label>
+                                <input type="text" id="student-name" value={studentName} onChange={e => setStudentName(e.target.value)} placeholder="e.g., John Doe" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"/>
+                             </div>
+                             <div>
+                                <label htmlFor="student-roll" className="block text-sm font-medium text-gray-700">Roll Number (Optional)</label>
+                                <input type="text" id="student-roll" value={studentRoll} onChange={e => setStudentRoll(e.target.value)} placeholder="e.g., 101" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"/>
+                             </div>
+                             <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                                <button onClick={() => handleLogin('practice')} className="w-full flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">Free Practice</button>
+                                <button 
+                                    onClick={() => handleLogin('game')} 
+                                    disabled={gameLoading}
+                                    className="w-full flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 disabled:cursor-wait">
+                                    {gameLoading ? 'Loading Game...' : 'Start Game Challenge'}
+                                </button>
+                             </div>
+                        </div>
+                    </div>
+                );
+            }
+            
+            if (view === 'game_results') {
+                const finalScore = levelScores.reduce((acc, s) => acc + s.score, 0);
+                const avgScore = levelScores.length > 0 ? Math.round(finalScore / levelScores.length) : 0;
+                return (
+                    <div className="w-full max-w-xl mx-auto bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
+                        <h1 className="text-3xl font-bold text-center text-gray-800 mb-2">Challenge Complete!</h1>
+                        <p className="text-center text-gray-500 mb-6">Here's your performance summary, <span className="font-bold">{studentName}</span>.</p>
+                        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-sm text-gray-500">Student</p>
+                                    <p className="font-bold text-lg text-gray-800">{studentName} (Roll: {studentRoll || 'N/A'})</p>
+                                </div>
+                                 <div>
+                                    <p className="text-sm text-gray-500 text-right">Average Score</p>
+                                    <p className="font-bold text-lg text-gray-800 text-right">{avgScore}%</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="space-y-2 mb-8">
+                             {gameLevels.map((level, index) => {
+                                 const result = levelScores.find(s => s.level === index);
+                                 return (
+                                     <div key={index} className="flex justify-between items-center p-3 rounded-md odd:bg-white even:bg-gray-50">
+                                        <span className="font-semibold text-gray-700">{index + 1}. {level.name}</span>
+                                        {result ? (
+                                            <span className={`font-bold ${result.passed ? 'text-green-600' : 'text-red-600'}`}>{result.score}%</span>
+                                        ) : (
+                                            <span className="text-sm text-gray-400">Not Attempted</span>
+                                        )}
+                                     </div>
+                                 );
+                             })}
+                        </div>
+                         <div className="flex flex-col sm:flex-row gap-4">
+                            <button onClick={() => handleLogin('game')} className="w-full flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition">Play Again</button>
+                            <button onClick={handleQuit} className="w-full flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg transition">Main Menu</button>
+                         </div>
+                    </div>
+                );
+            }
+
+            // --- Main Practice / Game View ---
+            const isGameMode = view === 'game';
+            
+            const sentenceBoxContent = () => {
+                if (isSynthesizing) {
+                    return (
+                        <div className="flex items-center text-xl text-gray-500 font-medium animate-pulse">
+                            <ListenIcon />
+                            <span className="ml-3">Listen carefully...</span>
+                        </div>
+                    );
+                }
+                if (isListening) {
+                    return (
+                        <div className="flex items-center text-xl text-gray-500 font-medium animate-pulse">
+                            <SpeakIcon />
+                            <span className="ml-3">Your turn to speak...</span>
+                        </div>
+                    );
+                }
+                return <p className="text-xl md:text-2xl text-gray-700 font-medium">{currentSentence}</p>;
+            };
+            
+            return (
+                <div className="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-6 md:p-10 transition-all">
+                    <AppHeader studentName={studentName} studentRoll={studentRoll} onQuit={handleQuit} />
+                    
+                    {!isGameMode && (
+                        <>
+                        <div className="mb-6">
+                            <label htmlFor="custom-phrase-input" className="block text-sm font-medium text-gray-700 mb-1">Custom Practice Phrase</label>
+                            <form onSubmit={handleCustomPhraseSubmit} className="flex flex-col sm:flex-row gap-2">
+                                <input type="text" id="custom-phrase-input" value={customPhrase} onChange={(e) => setCustomPhrase(e.target.value)} placeholder="Enter a sentence to practice here..." className="flex-grow w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                                <button type="submit" className="w-full sm:w-auto flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">Practice This</button>
+                            </form>
+                        </div>
+                        <div className="text-center my-4"><div className="relative"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300"></div></div><div className="relative flex justify-center"><span className="bg-white px-2 text-sm text-gray-500">Practice Area</span></div></div></div>
+                        </>
+                    )}
+                    
+                    {isGameMode && gameLevels.length > 0 && (
+                        <div className="text-center my-6 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                            <h2 className="text-xl font-bold text-yellow-800">Level {currentLevel + 1}: {gameLevels[currentLevel]?.name}</h2>
+                            <p className="text-yellow-700">You need 90% accuracy to pass this level.</p>
+                        </div>
+                    )}
+
+                    <div className="bg-gray-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6 min-h-[80px] flex items-center justify-center text-center">
+                       {sentenceBoxContent()}
+                    </div>
+
+                    <div className={`grid grid-cols-1 ${isGameMode ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4 mb-8`}>
+                        <button onClick={handleListen} disabled={!currentSentence || isListening} className="flex items-center justify-center w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105 disabled:bg-blue-300 disabled:cursor-not-allowed"><ListenIcon /> Listen</button>
+                        <button onClick={handleSpeak} disabled={!currentSentence} className={`flex items-center justify-center w-full font-bold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105 disabled:cursor-not-allowed ${isListening ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'} text-white disabled:bg-green-300`}>
+                            {isListening ? <><LoadingIcon /> Listening...</> : <><SpeakIcon /> Speak Now</>}
+                        </button>
+                        {!isGameMode && (
+                            <button onClick={getNewPracticeSentence} disabled={isListening} className="flex items-center justify-center w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105 disabled:bg-gray-400"><NextIcon /> New Sentence</button>
+                        )}
+                    </div>
+                    
+                    {showResults && <ResultsDisplay userSpeech={userSpeech} score={score} comparisonHtml={comparisonHtml} />}
+                    
+                    {isGameMode && showResults && (
+                        <div className="mt-6 flex flex-col sm:flex-row gap-4 animate-fade-in">
+                            {score >= 90 ? (
+                                <button onClick={handleNextLevel} className="w-full flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition">
+                                   {currentLevel === gameLevels.length - 1 ? 'Finish & See Results' : 'Passed! Next Level'}
+                                </button>
+                            ) : (
+                                <button onClick={() => getNewGameSentence(currentLevel)} className="w-full flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-lg transition">Try Again</button>
+                            )}
+                            <button onClick={() => setView('game_results')} className="w-full flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition">Quit Game</button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+</html>
